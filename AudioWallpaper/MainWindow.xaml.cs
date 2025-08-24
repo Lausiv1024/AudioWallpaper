@@ -130,13 +130,19 @@ namespace AudioWallpaper
                     double diagonal = Math.Sqrt(c[i].X * c[i].X + c[i].Y * c[i].Y);
                     result[i] =(float) diagonal;
                 }
-                for (int i = 0; i < visualizerRects.Length; i++)
+                var tasks = new Task[visualizerRects.Length];
+                //for (int i = 0; i < visualizerRects.Length; i++)
+                //{
+                //    visualizerRects[i].val = result[i] * 10000;
+                //    tasks[i] = Dispatcher.InvokeAsync(() => visualizerRects[i].animTick()).Task;
+                //}
+                int ir = 0;
+                foreach(var rect in visualizerRects)
                 {
-                    int val1 =(int) Math.Pow(1.04, i);
-                    if (val1 > visualizerRects.Length) break;
-                    visualizerRects[i].val = result[i] * 10000;
-                    Dispatcher.Invoke(() => visualizerRects[i].animTick());
+                    rect.val = result[ir] * 10000;
+                    tasks[ir++] = Dispatcher.InvokeAsync(() => rect.animTick()).Task;
                 }
+                Task.WaitAny(tasks);
                 recorded.Clear();
             }
         }
