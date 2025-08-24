@@ -110,7 +110,7 @@ namespace AudioWallpaper
         {
             var windowSize = fftLength;
             recorded.Add(s);
-            if (recorded.Count == windowSize)
+            if (recorded.Count >= windowSize)
             {
                 Complex[] c = new Complex[windowSize];
 
