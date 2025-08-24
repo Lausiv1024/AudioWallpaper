@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32901.215
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AudioWallpaper", "AudioWallpaper\AudioWallpaper.csproj", "{9682B95F-0989-416D-B7C2-EF9EEB05583E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9682B95F-0989-416D-B7C2-EF9EEB05583E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9682B95F-0989-416D-B7C2-EF9EEB05583E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9682B95F-0989-416D-B7C2-EF9EEB05583E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9682B95F-0989-416D-B7C2-EF9EEB05583E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {28F7D889-F024-48C1-BF26-DAA6EA7D0E8F}
+	EndGlobalSection
+EndGlobal
