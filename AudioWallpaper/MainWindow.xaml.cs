@@ -33,12 +33,12 @@ namespace AudioWallpaper
         VisualizerRect[] visualizerRects;
         bool isFullScreen = false;
         int a = 0;
-        private int fpsMode = 60;
+        private int fpsMode = 1;
         private double p;
         DispatcherTimer animTimer;
         DispatcherTimer PerSec;
         WasapiLoopbackCapture capture;
-        readonly int fftLength = 512;
+        readonly int fftLength = 2048;
         int fs = 24000;
         int availableCalledCount = 0;
 
@@ -62,7 +62,6 @@ namespace AudioWallpaper
             WaveFormat waveFormat = new WaveFormat(fs, 1);
             capture = new WasapiLoopbackCapture();
             capture.WaveFormat = waveFormat;
-
             capture.DataAvailable += (s, e) =>
             {
                 if (e.BytesRecorded == 0) return;
@@ -124,25 +123,19 @@ namespace AudioWallpaper
 
                 FastFourierTransform.FFT(true, (int)Math.Log(fftLength, 2), c);
 
-                result = new float[windowSize];
-                for (int i = 0; i < windowSize; i++)
+                result = new float[windowSize / 2];
+                for (int i = 0; i < windowSize / 2; i++)
                 {
                     double diagonal = Math.Sqrt(c[i].X * c[i].X + c[i].Y * c[i].Y);
                     result[i] =(float) diagonal;
                 }
                 var tasks = new Task[visualizerRects.Length];
-                //for (int i = 0; i < visualizerRects.Length; i++)
-                //{
-                //    visualizerRects[i].val = result[i] * 10000;
-                //    tasks[i] = Dispatcher.InvokeAsync(() => visualizerRects[i].animTick()).Task;
-                //}
                 int ir = 0;
                 foreach(var rect in visualizerRects)
                 {
                     rect.val = result[ir] * 10000;
                     tasks[ir++] = Dispatcher.InvokeAsync(() => rect.animTick()).Task;
                 }
-                Task.WaitAny(tasks);
                 recorded.Clear();
             }
         }
