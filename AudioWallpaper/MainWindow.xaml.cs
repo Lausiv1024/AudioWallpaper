@@ -39,7 +39,7 @@ namespace AudioWallpaper
         DispatcherTimer PerSec;
         WasapiLoopbackCapture capture;
         readonly int fftLength = 2048;
-        int fs = 24000;
+        int fs = 48000;
         int availableCalledCount = 0;
         
         private float[] currentSpectrum;
@@ -148,9 +148,11 @@ namespace AudioWallpaper
                 for (int i = 0; i < windowSize; i++)
                 {
                     c[i] = new Complex();
-                    c[i].X = (float)(recorded[i] * FastFourierTransform.HammingWindow(i, windowSize));
+                    c[i].X = (float)(recorded[i] * FastFourierTransform.BlackmannHarrisWindow(i, windowSize));
                     c[i].Y = 0.0f;
                 }
+
+                
 
                 FastFourierTransform.FFT(true, (int)Math.Log(fftLength, 2), c);
 
@@ -269,11 +271,17 @@ namespace AudioWallpaper
                     float diff = targetSpectrum[i] - currentSpectrum[i];
                     if (diff > 0)
                     {
-                        currentSpectrum[i] = currentSpectrum[i] + diff * 0.8f;
+                        float attackSpeed = Math.Min(0.95f, 0.85f + Math.Abs(diff) * 0.0001f);
+                        currentSpectrum[i] = currentSpectrum[i] + diff * attackSpeed;
                     }
                     else
                     {
-                        currentSpectrum[i] = currentSpectrum[i] + diff * 0.35f;
+                        float releaseSpeed = 0.45f;
+                        if (currentSpectrum[i] < targetSpectrum[i] * 1.5f)
+                        {
+                            releaseSpeed = 0.35f;
+                        }
+                        currentSpectrum[i] = currentSpectrum[i] + diff * releaseSpeed;
                     }
                     
                     visualizerRects[i].setTargetValue(currentSpectrum[i]);

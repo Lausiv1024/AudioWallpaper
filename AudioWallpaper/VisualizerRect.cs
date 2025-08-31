@@ -19,8 +19,11 @@ namespace AudioWallpaper
         private double targetVal;
         private double currentVal;
         private double velocity;
-        private double springStrength = 0.24;
-        private double dampingFactor = 0.88;
+        private double springStrength = 0.22;
+        private double dampingFactor = 0.68;
+        private double previousTargetVal = 0;
+        private double attackMultiplier = 3.2;
+        private double releaseMultiplier = 1.0;
 
 
         public VisualizerRect(int index)
@@ -59,11 +62,30 @@ namespace AudioWallpaper
             
             if (targetVal > currentVal)
             {
-                force *= 2.7;
+                double deltaTarget = targetVal - previousTargetVal;
+                if (deltaTarget > 0)
+                {
+                    force *= attackMultiplier * (1.0 + Math.Min(deltaTarget / targetVal, 0.5));
+                }
+                else
+                {
+                    force *= attackMultiplier * 0.7;
+                }
+            }
+            else
+            {
+                force *= releaseMultiplier;
             }
             
             velocity = velocity * dampingFactor + force;
+            
+            if (Math.Abs(velocity) > targetVal * 0.4 && targetVal > currentVal)
+            {
+                velocity = targetVal * 0.4;
+            }
+            
             currentVal += velocity;
+            previousTargetVal = targetVal;
             
             if (currentVal < 0)
             {
