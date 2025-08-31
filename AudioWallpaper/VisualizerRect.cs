@@ -15,6 +15,12 @@ namespace AudioWallpaper
         public Rectangle rectangle { get; set; }
         public int index = 0;
         public double val;
+        
+        private double targetVal;
+        private double currentVal;
+        private double velocity;
+        private double springStrength = 0.24;
+        private double dampingFactor = 0.88;
 
 
         public VisualizerRect(int index)
@@ -25,6 +31,10 @@ namespace AudioWallpaper
             rectangle.Height = 8;
             MainWindow.instance.Visualizer.Children.Add(rectangle);
 
+            currentVal = 0;
+            targetVal = 0;
+            velocity = 0;
+            
             respondToResize();
             animTick();
         }
@@ -38,8 +48,37 @@ namespace AudioWallpaper
             Canvas.SetTop(rectangle, h - 40 - val);
         }
 
+        public void setTargetValue(double value)
+        {
+            targetVal = value;
+        }
+        
         public void animTick()
         {
+            double force = (targetVal - currentVal) * springStrength;
+            
+            if (targetVal > currentVal)
+            {
+                force *= 2.7;
+            }
+            
+            velocity = velocity * dampingFactor + force;
+            currentVal += velocity;
+            
+            if (currentVal < 0)
+            {
+                currentVal = 0;
+                velocity = 0;
+            }
+            
+            double fallSpeed = 0.9;
+            if (targetVal < currentVal * 0.3)
+            {
+                currentVal *= (1 - fallSpeed);
+            }
+            
+            val = currentVal;
+            
             double h = MainWindow.instance.Visualizer.ActualHeight;
             rectangle.Height = val + 8;
             Canvas.SetTop(rectangle, h - 40 - val);

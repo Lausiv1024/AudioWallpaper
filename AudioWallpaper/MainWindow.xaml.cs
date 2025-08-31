@@ -29,7 +29,7 @@ namespace AudioWallpaper
     {
         public static MainWindow instance { get; private set; }
 
-        public int detail { get; private set; } = 128;
+        public int detail { get; private set; } = 256;
         VisualizerRect[] visualizerRects;
         bool isFullScreen = false;
         int a = 0;
@@ -41,6 +41,12 @@ namespace AudioWallpaper
         readonly int fftLength = 2048;
         int fs = 24000;
         int availableCalledCount = 0;
+        
+        private float[] currentSpectrum;
+        private float[] targetSpectrum;
+        private readonly object spectrumLock = new object();
+        private const float smoothingFactor = 0.3f;
+        private DateTime lastUpdateTime = DateTime.Now;
 
         public MainWindow()
         {
@@ -52,6 +58,8 @@ namespace AudioWallpaper
             PerSec.Start();
             instance = this;
             visualizerRects = new VisualizerRect[detail];
+            currentSpectrum = new float[detail];
+            targetSpectrum = new float[detail];
 
             p = fpsMode == 1 ? 1.0 / 60.0 : 1.0 / 30.0;
             for (int i = 0; i < visualizerRects.Length; i++)
@@ -129,12 +137,26 @@ namespace AudioWallpaper
                     double diagonal = Math.Sqrt(c[i].X * c[i].X + c[i].Y * c[i].Y);
                     result[i] =(float) diagonal;
                 }
-                var tasks = new Task[visualizerRects.Length];
-                int ir = 0;
-                foreach(var rect in visualizerRects)
+                
+                lock (spectrumLock)
                 {
-                    rect.val = result[ir] * 10000;
-                    tasks[ir++] = Dispatcher.InvokeAsync(() => rect.animTick()).Task;
+                    int binSize = result.Length / detail / 4;
+                    for (int i = 0; i < detail; i++)
+                    {
+                        float sum = 0;
+                        int count = 0;
+                        for (int j = i * binSize; j < Math.Min((i + 1) * binSize, result.Length); j++)
+                        {
+                            sum += result[j];
+                            count++;
+                        }
+                        if (count > 0)
+                        {
+                            float newValue = (sum / count) * 10000;
+                            targetSpectrum[i] = targetSpectrum[i] * 0.4f + newValue * 0.6f;
+                        }
+                    }
+                    lastUpdateTime = DateTime.Now;
                 }
                 recorded.Clear();
             }
@@ -182,9 +204,26 @@ namespace AudioWallpaper
 
         private void animTick(object sender, EventArgs e)
         {
-            if (result == null) return;
-            if (result.Length == 0 || result.Length < visualizerRects.Length) return;
-            
+            lock (spectrumLock)
+            {
+                float lerpFactor = 0.85f;
+                
+                for (int i = 0; i < detail; i++)
+                {
+                    float diff = targetSpectrum[i] - currentSpectrum[i];
+                    if (diff > 0)
+                    {
+                        currentSpectrum[i] = currentSpectrum[i] + diff * 0.6f;
+                    }
+                    else
+                    {
+                        currentSpectrum[i] = currentSpectrum[i] + diff * 0.35f;
+                    }
+                    
+                    visualizerRects[i].setTargetValue(currentSpectrum[i]);
+                    visualizerRects[i].animTick();
+                }
+            }
         }
 
         private void setFullScreen()
