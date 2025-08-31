@@ -47,6 +47,10 @@ namespace AudioWallpaper
         private readonly object spectrumLock = new object();
         private const float smoothingFactor = 0.3f;
         private DateTime lastUpdateTime = DateTime.Now;
+        
+        private const float minFreq = 30f;
+        private const float maxFreq = 10000f;
+        private bool useLogScale = true;
 
         public MainWindow()
         {
@@ -114,6 +118,25 @@ namespace AudioWallpaper
         List<double> recorded = new List<double>();
         float[] result;
 
+        private int GetFrequencyBinForBar(int barIndex, int totalBins)
+        {
+            if (!useLogScale)
+            {
+                return barIndex * totalBins / detail / 4;
+            }
+            
+            float logMin = (float)Math.Log10(minFreq);
+            float logMax = (float)Math.Log10(maxFreq);
+            
+            float logFreq = logMin + (logMax - logMin) * barIndex / detail;
+            float freq = (float)Math.Pow(10, logFreq);
+            
+            float nyquist = fs / 2f;
+            int bin = (int)(freq * totalBins / nyquist);
+            
+            return Math.Min(Math.Max(bin, 0), totalBins - 1);
+        }
+
         private void processSample(float s)
         {
             var windowSize = fftLength;
@@ -140,20 +163,48 @@ namespace AudioWallpaper
                 
                 lock (spectrumLock)
                 {
-                    int binSize = result.Length / detail / 4;
-                    for (int i = 0; i < detail; i++)
+                    if (useLogScale)
                     {
-                        float sum = 0;
-                        int count = 0;
-                        for (int j = i * binSize; j < Math.Min((i + 1) * binSize, result.Length); j++)
+                        for (int i = 0; i < detail; i++)
                         {
-                            sum += result[j];
-                            count++;
+                            int startBin = GetFrequencyBinForBar(i, result.Length);
+                            int endBin = GetFrequencyBinForBar(i + 1, result.Length);
+                            
+                            if (startBin >= endBin) endBin = startBin + 1;
+                            
+                            float sum = 0;
+                            int count = 0;
+                            for (int j = startBin; j < Math.Min(endBin, result.Length); j++)
+                            {
+                                sum += result[j];
+                                count++;
+                            }
+                            if (count > 0)
+                            {
+                                float avgValue = sum / count;
+                                float scaleFactor = 10000f * (1.0f + i * 0.005f);
+                                float newValue = avgValue * scaleFactor;
+                                targetSpectrum[i] = targetSpectrum[i] * 0.4f + newValue * 0.6f;
+                            }
                         }
-                        if (count > 0)
+                    }
+                    else
+                    {
+                        int binSize = result.Length / detail / 4;
+                        for (int i = 0; i < detail; i++)
                         {
-                            float newValue = (sum / count) * 10000;
-                            targetSpectrum[i] = targetSpectrum[i] * 0.4f + newValue * 0.6f;
+                            float sum = 0;
+                            int count = 0;
+                            for (int j = i * binSize; j < Math.Min((i + 1) * binSize, result.Length); j++)
+                            {
+                                sum += result[j];
+                                count++;
+                            }
+                            if (count > 0)
+                            {
+                                float newValue = (sum / count) * 10000;
+                                targetSpectrum[i] = targetSpectrum[i] * 0.4f + newValue * 0.6f;
+                            }
                         }
                     }
                     lastUpdateTime = DateTime.Now;
@@ -200,6 +251,11 @@ namespace AudioWallpaper
         {
             if (e.Key == Key.Escape) this.Close();
             if (e.Key == Key.F || e.Key == Key.F11) setFullScreen();
+            if (e.Key == Key.L)
+            {
+                useLogScale = !useLogScale;
+                Console.WriteLine($"Scale mode: {(useLogScale ? "Logarithmic" : "Linear")}");
+            }
         }
 
         private void animTick(object sender, EventArgs e)
@@ -213,7 +269,7 @@ namespace AudioWallpaper
                     float diff = targetSpectrum[i] - currentSpectrum[i];
                     if (diff > 0)
                     {
-                        currentSpectrum[i] = currentSpectrum[i] + diff * 0.6f;
+                        currentSpectrum[i] = currentSpectrum[i] + diff * 0.8f;
                     }
                     else
                     {
