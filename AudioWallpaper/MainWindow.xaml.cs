@@ -19,6 +19,7 @@ using System.Diagnostics;
 using NAudio.Dsp;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
+using System.Security.Principal;
 
 namespace AudioWallpaper
 {
@@ -29,7 +30,7 @@ namespace AudioWallpaper
     {
         public static MainWindow instance { get; private set; }
 
-        public int detail { get; private set; } = 256;
+        public int detail { get; private set; } = 128;
         VisualizerRect[] visualizerRects;
         bool isFullScreen = false;
         int a = 0;
@@ -55,6 +56,8 @@ namespace AudioWallpaper
         public MainWindow()
         {
             InitializeComponent();
+            
+            this.Loaded += MainWindow_Loaded;
 
             PerSec = new DispatcherTimer();
             PerSec.Interval = TimeSpan.FromMilliseconds(1000);
@@ -65,7 +68,8 @@ namespace AudioWallpaper
             currentSpectrum = new float[detail];
             targetSpectrum = new float[detail];
 
-            p = fpsMode == 1 ? 1.0 / 60.0 : 1.0 / 30.0;
+            //FPSを決定します。ただし指定された値より実際のFPS値は低くなるようです。
+            p = fpsMode == 1 ? 1.0 / 120 : 1.0 / 30.0;
             for (int i = 0; i < visualizerRects.Length; i++)
             {
                 visualizerRects[i] = new VisualizerRect(i);
@@ -113,6 +117,33 @@ namespace AudioWallpaper
             {
                 
             };
+        }
+
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            GetWorkerW();
+            //workerW = new IntPtr(0xD0434);
+            
+            if (workerW != IntPtr.Zero)
+            {
+                var handle = new WindowInteropHelper(this).Handle;
+                var result = InteropModule.SetParent(handle, workerW);
+                
+                if (result != IntPtr.Zero)
+                {
+                    Console.WriteLine($"Successfully set parent to WorkerW. Previous parent: {result:X}");
+                    InteropModule.SetWindowPos(handle, new IntPtr(InteropModule.HWND_BOTTOM), 0, 0, 0, 0,
+                        InteropModule.SWP_NOMOVE | InteropModule.SWP_NOSIZE);
+                }
+                else
+                {
+                    Console.WriteLine($"Failed to set parent. Error: {Marshal.GetLastWin32Error()}");
+                }
+            }
+            else
+            {
+                Console.WriteLine("WorkerW not found - running as normal window");
+            }
         }
 
         List<double> recorded = new List<double>();
@@ -214,6 +245,36 @@ namespace AudioWallpaper
                 recorded.Clear();
             }
         }
+        IntPtr workerW = IntPtr.Zero;
+        private void GetWorkerW()
+        {
+            IntPtr progman = InteropModule.FindWindow("Progman", null);
+            IntPtr smtResult = IntPtr.Zero;
+
+            InteropModule.SendMessageTimeout(progman,
+                0x52C,
+                new IntPtr(0),
+                IntPtr.Zero,
+                0x0,
+                1000,
+                out smtResult);
+
+            InteropModule.EnumWindows(new InteropModule.EnumWindowDelegate((topHandle, topparams) =>
+            {
+                IntPtr shell = InteropModule.FindWindowEx(topHandle,
+                    IntPtr.Zero,
+                    "SHELLDLL_DefView",
+                    null);
+                if (shell != IntPtr.Zero)
+                {
+                    workerW = InteropModule.FindWindowEx(IntPtr.Zero, topHandle, "WorkerW", null);
+                }
+
+                return true;
+            }), IntPtr.Zero);
+            
+            Console.WriteLine($"Final WorkerW handle: {workerW:X}");
+        }
 
         private float[] fft(float[] sdata)
         {
@@ -245,7 +306,7 @@ namespace AudioWallpaper
 
         private void Debug(object sender, EventArgs e)
         {
-            DebugText.Text = $"DataAvailableCount/s : {availableCalledCount}";
+            //DebugText.Text = $"DataAvailableCount/s : {availableCalledCount}";
             availableCalledCount = 0;
         }
 
@@ -333,6 +394,15 @@ namespace AudioWallpaper
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             capture.StopRecording();
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (workerW != IntPtr.Zero)
+            {
+                var helper = new WindowInteropHelper(this);
+                InteropModule.SetParent(helper.Handle, workerW);
+            }
         }
     }
 }

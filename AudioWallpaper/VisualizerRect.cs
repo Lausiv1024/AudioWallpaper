@@ -20,7 +20,7 @@ namespace AudioWallpaper
         private double currentVal;
         private double velocity;
         private double springStrength = 0.22;
-        private double dampingFactor = 0.68;
+        private double dampingFactor = 0.48;
         private double previousTargetVal = 0;
         private double attackMultiplier = 3.2;
         private double releaseMultiplier = 1.0;

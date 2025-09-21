@@ -6,9 +6,9 @@
         xmlns:local="clr-namespace:AudioWallpaper" KeyDown="Window_KeyDown" MouseWheel="Window_MouseWheel"
         mc:Ignorable="d" WindowStyle="None" Background="Black" SizeChanged="Window_SizeChanged" Closing="Window_Closing"
         xmlns:DXExtensions="clr-namespace:TqkLibrary.Wpf.Interop.DirectX;assembly=TqkLibrary.Wpf.Interop.DirectX"
-        Title="MainWindow" Height="450" Width="1000" MouseLeftButtonDown="Window_MouseLeftButtonDown">
+        Title="MainWindow" Height="450" Width="1000" MouseLeftButtonDown="Window_MouseLeftButtonDown" Loaded="Window_Loaded">
     <Grid x:Name="Visu">
-        <TextBlock x:Name="DebugText" Text="DataAvailableCount/s:" Foreground="White" FontSize="16"/>
+        
         <Canvas x:Name="Visualizer" Margin="64">
             <Image x:Name="D3DImgHost">
                 <Image.Source>
