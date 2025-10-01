@@ -69,7 +69,7 @@ namespace AudioWallpaper
             targetSpectrum = new float[detail];
 
             //FPSを決定します。ただし指定された値より実際のFPS値は低くなるようです。
-            p = fpsMode == 1 ? 1.0 / 120 : 1.0 / 30.0;
+            p = fpsMode == 1 ? 1.0 / 90 : 1.0 / 30.0;
             for (int i = 0; i < visualizerRects.Length; i++)
             {
                 visualizerRects[i] = new VisualizerRect(i);
