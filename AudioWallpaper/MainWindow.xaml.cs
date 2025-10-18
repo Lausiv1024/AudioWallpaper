@@ -20,6 +20,7 @@ using NAudio.Dsp;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
 using System.Security.Principal;
+using System.Diagnostics;
 
 namespace AudioWallpaper
 {
@@ -39,8 +40,8 @@ namespace AudioWallpaper
         DispatcherTimer animTimer;
         DispatcherTimer PerSec;
         WasapiLoopbackCapture capture;
-        readonly int fftLength = 2048;
-        int fs = 48000;
+        const int FFTLength = 4096;
+        const int SampleRate = 96000;
         int availableCalledCount = 0;
         
         private float[] currentSpectrum;
@@ -69,13 +70,13 @@ namespace AudioWallpaper
             targetSpectrum = new float[detail];
 
             //FPSを決定します。ただし指定された値より実際のFPS値は低くなるようです。
-            p = fpsMode == 1 ? 1.0 / 90 : 1.0 / 30.0;
+            p = fpsMode == 1 ? 1.0 / 120 : 1.0 / 30.0;
             for (int i = 0; i < visualizerRects.Length; i++)
             {
                 visualizerRects[i] = new VisualizerRect(i);
             }
 
-            WaveFormat waveFormat = new WaveFormat(fs, 1);
+            WaveFormat waveFormat = new WaveFormat(SampleRate, 1);
             capture = new WasapiLoopbackCapture();
             capture.WaveFormat = waveFormat;
             capture.DataAvailable += (s, e) =>
@@ -162,7 +163,7 @@ namespace AudioWallpaper
             float logFreq = logMin + (logMax - logMin) * barIndex / detail;
             float freq = (float)Math.Pow(10, logFreq);
             
-            float nyquist = fs / 2f;
+            float nyquist = SampleRate / 2f;
             int bin = (int)(freq * totalBins / nyquist);
             
             return Math.Min(Math.Max(bin, 0), totalBins - 1);
@@ -170,7 +171,7 @@ namespace AudioWallpaper
 
         private void processSample(float s)
         {
-            var windowSize = fftLength;
+            var windowSize = FFTLength;
             recorded.Add(s);
             if (recorded.Count >= windowSize)
             {
@@ -185,7 +186,7 @@ namespace AudioWallpaper
 
                 
 
-                FastFourierTransform.FFT(true, (int)Math.Log(fftLength, 2), c);
+                FastFourierTransform.FFT(true, (int)Math.Log(FFTLength, 2), c);
 
                 result = new float[windowSize / 2];
                 for (int i = 0; i < windowSize / 2; i++)
